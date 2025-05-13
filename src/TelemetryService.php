@@ -2,7 +2,9 @@
 
 namespace Exxtensio\TelemetryExtension;
 
+use OpenTelemetry\API\Trace\SpanKind;
 use OpenTelemetry\API\Trace\TracerInterface;
+use OpenTelemetry\Context\Context;
 use Throwable;
 
 class TelemetryService
@@ -14,7 +16,10 @@ class TelemetryService
      */
     public function trace(string $name, callable $callback, array $attributes = []): mixed
     {
-        $span = $this->tracer->spanBuilder($name)->startSpan();
+        $span = $this->tracer->spanBuilder($name)
+            ->setParent(Context::getRoot())
+            ->setSpanKind(SpanKind::KIND_SERVER)
+            ->startSpan();
 
         foreach ($attributes as $key => $value) {
             $span->setAttribute($key, $value);
