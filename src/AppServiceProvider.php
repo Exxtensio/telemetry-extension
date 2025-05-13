@@ -19,9 +19,16 @@ class AppServiceProvider extends ServiceProvider
             __DIR__ . '/../config/telemetry-extension.php',
             'telemetry'
         );
+    }
 
+    public function boot(Filesystem $filesystem): void
+    {
+        if (!$filesystem->exists(config_path('telemetry-extension.php')))
+            $filesystem->copy(__DIR__ . '/../config/telemetry-extension.php', config_path('telemetry-extension.php'));
+
+        $serviceName = config('telemetry.name', 'default');
         $resource = ResourceInfo::create(Attributes::create([
-            ResourceAttributes::SERVICE_NAME => config('telemetry.name'),
+            ResourceAttributes::SERVICE_NAME => $serviceName,
             ResourceAttributes::DEPLOYMENT_ENVIRONMENT_NAME => config('app.env', 'local'),
         ]));
 
@@ -34,16 +41,8 @@ class AppServiceProvider extends ServiceProvider
         );
 
         $this->app->instance('otel.tracer_provider', $provider);
-        $this->app->instance('otel.tracer', $provider->getTracer(config('telemetry.name')));
+        $this->app->instance('otel.tracer', $provider->getTracer($serviceName));
 
-        $this->app->singleton(TelemetryService::class, function ($app) {
-            return new TelemetryService($app->make('otel.tracer'));
-        });
-    }
-
-    public function boot(Filesystem $filesystem): void
-    {
-        if (!$filesystem->exists(config_path('telemetry-extension.php')))
-            $filesystem->copy(__DIR__ . '/../config/telemetry-extension.php', config_path('telemetry-extension.php'));
+        $this->app->singleton(TelemetryService::class, fn () => new TelemetryService($provider->getTracer($serviceName)));
     }
 }
