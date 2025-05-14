@@ -12,9 +12,7 @@ class TelemetryService
     protected ?SpanInterface $activeRootSpan = null;
     protected ?ScopeInterface $activeRootScope = null;
 
-    public function __construct(protected Trace\TracerInterface $tracer)
-    {
-    }
+    public function __construct(protected Trace\TracerInterface $tracer) {}
 
     /**
      * @throws Throwable
