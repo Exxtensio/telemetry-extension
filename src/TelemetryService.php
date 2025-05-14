@@ -12,7 +12,7 @@ class TelemetryService
     /**
      * @throws Throwable
      */
-    public function trace(string $name, callable $callback, array $attributes = []): mixed
+    public function trace(string $name, callable $callback, array $attributes = [], bool $autoFinish = true): mixed
     {
         $span = $this->tracer->spanBuilder($name)
             ->setSpanKind(Trace\SpanKind::KIND_SERVER)
@@ -31,8 +31,10 @@ class TelemetryService
             $span->setStatus(Trace\StatusCode::STATUS_ERROR, $e->getMessage());
             throw $e;
         } finally {
-            $span->end();
-            $scope->detach();
+            if ($autoFinish) {
+                $span->end();
+                $scope->detach();
+            }
         }
     }
 }
