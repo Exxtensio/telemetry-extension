@@ -7,7 +7,9 @@ use Throwable;
 
 class TelemetryService
 {
-    public function __construct(protected Trace\TracerInterface $tracer) {}
+    public function __construct(
+        protected Trace\TracerInterface $tracer
+    ) {}
 
     /**
      * @throws Throwable

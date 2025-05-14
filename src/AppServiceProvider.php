@@ -15,34 +15,29 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->mergeConfigFrom(
-            __DIR__ . '/../config/telemetry-extension.php',
-            'telemetry'
-        );
+        $this->app->singleton(TracerProvider::class, function () {
+            $serviceName = config('telemetry-extension.default');
+
+            $resource = ResourceInfo::create(Attributes::create([
+                ResourceAttributes::SERVICE_NAME => $serviceName,
+                ResourceAttributes::DEPLOYMENT_ENVIRONMENT => config('app.env', 'local'),
+            ]));
+
+            $exporter = Registry::spanExporterFactory('otlp')->create();
+
+            return new TracerProvider(
+                new SimpleSpanProcessor($exporter),
+                null,
+                $resource
+            );
+        });
+
+        $this->app->singleton(TelemetryManager::class, fn () => new TelemetryManager($this->app->make(TracerProvider::class)));
     }
 
     public function boot(Filesystem $filesystem): void
     {
         if (!$filesystem->exists(config_path('telemetry-extension.php')))
             $filesystem->copy(__DIR__ . '/../config/telemetry-extension.php', config_path('telemetry-extension.php'));
-
-        $serviceName = config('telemetry.name', 'default');
-        $resource = ResourceInfo::create(Attributes::create([
-            ResourceAttributes::SERVICE_NAME => $serviceName,
-            ResourceAttributes::DEPLOYMENT_ENVIRONMENT_NAME => config('app.env', 'local'),
-        ]));
-
-        $exporter = Registry::spanExporterFactory('otlp')->create();
-
-        $provider = new TracerProvider(
-            new SimpleSpanProcessor($exporter),
-            null,
-            $resource
-        );
-
-        $this->app->instance('otel.tracer_provider', $provider);
-        $this->app->instance('otel.tracer', $provider->getTracer($serviceName));
-
-        $this->app->singleton(TelemetryService::class, fn () => new TelemetryService($provider->getTracer($serviceName)));
     }
 }
