@@ -44,7 +44,7 @@ class TelemetryService
         $scope = $span->activate();
 
         try {
-            return $callback($span);
+            $result = $callback($span);
         } catch (Throwable $e) {
             $span->recordException($e);
             $span->setStatus(Trace\StatusCode::STATUS_ERROR, $e->getMessage());
@@ -53,6 +53,8 @@ class TelemetryService
             $span->end();
             $scope->detach();
         }
+
+        return $result;
     }
 
     /**
