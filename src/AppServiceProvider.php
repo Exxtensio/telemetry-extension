@@ -20,7 +20,7 @@ class AppServiceProvider extends ServiceProvider
 
             $resource = ResourceInfo::create(Attributes::create([
                 ResourceAttributes::SERVICE_NAME => $serviceName,
-                ResourceAttributes::DEPLOYMENT_ENVIRONMENT => config('app.env', 'local'),
+                ResourceAttributes::DEPLOYMENT_ENVIRONMENT_NAME => config('app.env', 'local'),
             ]));
 
             $exporter = Registry::spanExporterFactory('otlp')->create();
