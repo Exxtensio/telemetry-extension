@@ -63,10 +63,8 @@ class TelemetryService
 
     public function endActiveRoot(): void
     {
-        if ($this->activeRootSpan?->isRecording()) {
+        if ($this->activeRootSpan?->isRecording())
             $this->activeRootSpan->end();
-        }
-
         $this->activeRootScope?->detach();
 
         $this->activeRootSpan = null;
