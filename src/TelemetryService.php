@@ -3,11 +3,18 @@
 namespace Exxtensio\TelemetryExtension;
 
 use OpenTelemetry\API\Trace;
+use OpenTelemetry\API\Trace\SpanInterface;
+use OpenTelemetry\Context\ScopeInterface;
 use Throwable;
 
 class TelemetryService
 {
-    public function __construct(protected Trace\TracerInterface $tracer) {}
+    protected ?SpanInterface $activeRootSpan = null;
+    protected ?ScopeInterface $activeRootScope = null;
+
+    public function __construct(protected Trace\TracerInterface $tracer)
+    {
+    }
 
     /**
      * @throws Throwable
@@ -50,6 +57,21 @@ class TelemetryService
 
         $scope = $span->activate();
 
+        $this->activeRootSpan = $span;
+        $this->activeRootScope = $scope;
+
         return [$span, $scope];
+    }
+
+    public function endActiveRoot(): void
+    {
+        if ($this->activeRootSpan?->isRecording()) {
+            $this->activeRootSpan->end();
+        }
+
+        $this->activeRootScope?->detach();
+
+        $this->activeRootSpan = null;
+        $this->activeRootScope = null;
     }
 }
