@@ -14,13 +14,27 @@ class TelemetryService
 
     public function __construct(protected Trace\TracerInterface $tracer) {}
 
-    /**
-     * @throws Throwable
-     */
-    public function trace(string $name, callable $callback, array $attributes = [], bool $autoFinish = true): mixed
+    public function traceRoot(string $name, array $attributes = []): void
     {
         $span = $this->tracer->spanBuilder($name)
             ->setSpanKind(Trace\SpanKind::KIND_SERVER)
+            ->startSpan();
+
+        foreach ($attributes as $key => $value) {
+            $span->setAttribute($key, $value);
+        }
+
+        $scope = $span->activate();
+
+        $this->activeRootSpan = $span;
+        $this->activeRootScope = $scope;
+    }
+
+    /** @throws Throwable */
+    public function trace(string $name, callable $callback, array $attributes = []): mixed
+    {
+        $span = $this->tracer->spanBuilder($name)
+            ->setSpanKind(Trace\SpanKind::KIND_INTERNAL)
             ->startSpan();
 
         foreach ($attributes as $key => $value) {
@@ -36,35 +50,20 @@ class TelemetryService
             $span->setStatus(Trace\StatusCode::STATUS_ERROR, $e->getMessage());
             throw $e;
         } finally {
-            if ($autoFinish) {
-                $span->end();
-                $scope->detach();
-            }
+            $span->end();
+            $scope->detach();
         }
     }
 
-    public function traceRoot(string $name, array $attributes = []): array
-    {
-        $span = $this->tracer->spanBuilder($name)
-            ->setSpanKind(Trace\SpanKind::KIND_SERVER)
-            ->startSpan();
-
-        foreach ($attributes as $key => $value) {
-            $span->setAttribute($key, $value);
-        }
-
-        $scope = $span->activate();
-
-        $this->activeRootSpan = $span;
-        $this->activeRootScope = $scope;
-
-        return [$span, $scope];
-    }
-
+    /**
+     * Завершает root trace вручную.
+     */
     public function endActiveRoot(): void
     {
-        if ($this->activeRootSpan?->isRecording())
+        if ($this->activeRootSpan?->isRecording()) {
             $this->activeRootSpan->end();
+        }
+
         $this->activeRootScope?->detach();
 
         $this->activeRootSpan = null;
