@@ -32,7 +32,15 @@ class AppServiceProvider extends ServiceProvider
             );
         });
 
-        $this->app->singleton(TelemetryManager::class, fn () => new TelemetryManager($this->app->make(TracerProvider::class)));
+        $this->app->singleton(
+            TelemetryManager::class,
+            fn () => new TelemetryManager($this->app->make(TracerProvider::class))
+        );
+
+        $this->mergeConfigFrom(
+            __DIR__ . '/../config/telemetry-extension.php',
+            'telemetry-extension'
+        );
     }
 
     public function boot(Filesystem $filesystem): void
