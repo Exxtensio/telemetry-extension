@@ -37,4 +37,19 @@ class TelemetryService
             }
         }
     }
+
+    public function traceRoot(string $name, array $attributes = []): array
+    {
+        $span = $this->tracer->spanBuilder($name)
+            ->setSpanKind(Trace\SpanKind::KIND_SERVER)
+            ->startSpan();
+
+        foreach ($attributes as $key => $value) {
+            $span->setAttribute($key, $value);
+        }
+
+        $scope = $span->activate();
+
+        return [$span, $scope];
+    }
 }
