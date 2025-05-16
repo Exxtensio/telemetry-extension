@@ -2,39 +2,82 @@
 
 namespace Exxtensio\TelemetryExtension;
 
-use OpenTelemetry\API\Trace;
+use OpenTelemetry\API\Trace\SpanKind;
+use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\API\Trace\SpanInterface;
+use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\Context\ScopeInterface;
 use Throwable;
 
-class TelemetryService
+class TelemetryService implements TelemetryInterface
 {
-    protected ?SpanInterface $activeRootSpan = null;
-    protected ?ScopeInterface $activeRootScope = null;
+    protected TracerProviderInterface $provider;
+    protected ?SpanInterface $rootSpan = null;
+    protected ?ScopeInterface $rootScope = null;
 
-    public function __construct(protected Trace\TracerInterface $tracer) {}
+    public function __construct(TracerProviderInterface $provider) {
+        $this->provider = $provider;
+    }
 
-    public function traceRoot(string $name, array $attributes = []): void
+    public function startRoot(string $tracerName, string $name, array $attributes = []): void
     {
-        $span = $this->tracer->spanBuilder($name)
-            ->setSpanKind(Trace\SpanKind::KIND_SERVER)
+        if($this->rootSpan) {
+            return;
+        }
+
+        $tracer = $this->provider->getTracer($tracerName);
+        $this->rootSpan = $tracer->spanBuilder($name)
+            ->setSpanKind(SpanKind::KIND_SERVER)
+            ->startSpan();
+
+        foreach ($attributes as $key => $value) {
+            $this->rootSpan->setAttribute($key, $value);
+        }
+
+        $this->rootScope = $this->rootSpan->activate();
+    }
+
+    public function endRoot(): void
+    {
+        if($this->rootSpan) {
+            $this->rootSpan->end();
+            $this->rootSpan = null;
+        }
+
+        if ($this->rootScope) {
+            $this->rootScope->detach();
+            $this->rootScope = null;
+        }
+    }
+
+    public function startSpan(string $tracerName, string $name, array $attributes = []): array
+    {
+        $tracer = $this->provider->getTracer($tracerName);
+        $span = $tracer->spanBuilder($name)
+            ->setSpanKind(SpanKind::KIND_SERVER)
             ->startSpan();
 
         foreach ($attributes as $key => $value) {
             $span->setAttribute($key, $value);
         }
-
         $scope = $span->activate();
-
-        $this->activeRootSpan = $span;
-        $this->activeRootScope = $scope;
+        return [$span, $scope];
     }
 
-    /** @throws Throwable */
-    public function trace(string $name, callable $callback, array $attributes = []): mixed
+    public function endSpan(SpanInterface $span, ScopeInterface $scope): void
     {
-        $span = $this->tracer->spanBuilder($name)
-            ->setSpanKind(Trace\SpanKind::KIND_INTERNAL)
+        $span->end();
+        $scope->detach();
+    }
+
+    /**
+     * @throws Throwable
+     */
+    public function withSpan(string $tracerName, string $name, callable $callback, array $attributes = []): mixed
+    {
+        $tracer = $this->provider->getTracer($tracerName);
+        $span = $tracer->spanBuilder($name)
+            ->setSpanKind(SpanKind::KIND_INTERNAL)
             ->startSpan();
 
         foreach ($attributes as $key => $value) {
@@ -44,31 +87,16 @@ class TelemetryService
         $scope = $span->activate();
 
         try {
-            $result = $callback($span);
+            $response = $callback($span);
+            $span->setStatus(StatusCode::STATUS_OK);
+            return $response;
         } catch (Throwable $e) {
             $span->recordException($e);
-            $span->setStatus(Trace\StatusCode::STATUS_ERROR, $e->getMessage());
+            $span->setStatus(StatusCode::STATUS_ERROR, $e->getMessage());
             throw $e;
         } finally {
             $span->end();
             $scope->detach();
         }
-
-        return $result;
-    }
-
-    /**
-     * Завершает root trace вручную.
-     */
-    public function endActiveRoot(): void
-    {
-        if ($this->activeRootSpan?->isRecording()) {
-            $this->activeRootSpan->end();
-        }
-
-        $this->activeRootScope?->detach();
-
-        $this->activeRootSpan = null;
-        $this->activeRootScope = null;
     }
 }

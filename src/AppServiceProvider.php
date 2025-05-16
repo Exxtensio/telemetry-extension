@@ -2,50 +2,50 @@
 
 namespace Exxtensio\TelemetryExtension;
 
-use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\ServiceProvider;
-use OpenTelemetry\SDK\Common\Attribute\Attributes;
+use OpenTelemetry\API\Common\Time\SystemClock;
+use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\SDK\Resource\ResourceInfo;
-use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
+use OpenTelemetry\SDK\Trace\SpanProcessor\BatchSpanProcessor;
 use OpenTelemetry\SDK\Trace\TracerProvider;
 use OpenTelemetry\SDK\Registry;
+use OpenTelemetry\SDK\Common\Attribute\Attributes;
 use OpenTelemetry\SemConv\ResourceAttributes;
 
 class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->singleton(TracerProvider::class, function () {
-            $serviceName = config('telemetry-extension.default');
+        $this->app->singleton(TracerProviderInterface::class, function () {
 
             $resource = ResourceInfo::create(Attributes::create([
-                ResourceAttributes::SERVICE_NAME => $serviceName,
+                ResourceAttributes::SERVICE_NAME => 'app',
                 ResourceAttributes::DEPLOYMENT_ENVIRONMENT_NAME => config('app.env', 'local'),
             ]));
 
             $exporter = Registry::spanExporterFactory('otlp')->create();
 
+            $clock = new SystemClock();
+            $processor = new BatchSpanProcessor($exporter, $clock);
             return new TracerProvider(
-                new SimpleSpanProcessor($exporter),
+                [$processor],
                 null,
                 $resource
             );
         });
 
-        $this->app->singleton(
-            TelemetryManager::class,
-            fn () => new TelemetryManager($this->app->make(TracerProvider::class))
-        );
-
-        $this->mergeConfigFrom(
-            __DIR__ . '/../config/telemetry-extension.php',
-            'telemetry-extension'
-        );
+        $this->app->singleton(TelemetryService::class, function ($app) {
+            return new TelemetryService($app->make(TracerProviderInterface::class));
+        });
     }
 
-    public function boot(Filesystem $filesystem): void
+    public function boot(): void
     {
-        if (!$filesystem->exists(config_path('telemetry-extension.php')))
-            $filesystem->copy(__DIR__ . '/../config/telemetry-extension.php', config_path('telemetry-extension.php'));
+        $this->app->terminating(function () {
+            $provider = app(TracerProviderInterface::class);
+            if (method_exists($provider, 'shutdown')) {
+                $provider->shutdown();
+            }
+        });
     }
 }
