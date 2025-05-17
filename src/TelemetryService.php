@@ -80,4 +80,11 @@ class TelemetryService implements TelemetryInterface
             $scope->detach();
         }
     }
+
+    public function getContext($context): array
+    {
+        $carrier = [];
+        TraceContextPropagator::getInstance()->inject($carrier, null, $context);
+        return $carrier;
+    }
 }
