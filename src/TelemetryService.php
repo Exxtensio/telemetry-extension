@@ -52,7 +52,7 @@ class TelemetryService implements TelemetryInterface
     /**
      * @throws Throwable
      */
-    public function withSpan(string $tracerName, string $name, callable $callback, array $trace = [], array $attributes = []): mixed
+    public function withSpan(string $tracerName, string $name, callable $callback, array $trace = [], array $attributes = [], $msg = false): mixed
     {
         $tracer = $this->provider->getTracer($tracerName);
         $context = TraceContextPropagator::getInstance()->extract($trace, null, Context::getCurrent());
@@ -70,10 +70,12 @@ class TelemetryService implements TelemetryInterface
         try {
             $response = $callback($span);
             $span->setStatus(Trace\StatusCode::STATUS_OK);
+            if($msg) $msg->ack();
             return $response;
         } catch (Throwable $e) {
             $span->recordException($e);
             $span->setStatus(Trace\StatusCode::STATUS_ERROR, $e->getMessage());
+            if($msg) $msg->nack(true);
             throw $e;
         } finally {
             $span->end();
