@@ -51,9 +51,9 @@ class AppHandler extends AbstractProcessingHandler
             ]);
 
         } catch (RequestException $e) {
-            AppException::set(self::class, RequestException::class, $e, 'slack');
+            AppException::set(self::class, 'default', $e->getMessage(), 'slack');
         } catch (GuzzleException $e) {
-            AppException::set(self::class, GuzzleException::class, $e, 'slack');
+            AppException::set(self::class, 'default', $e->getMessage(), 'slack');
         }
     }
 }
