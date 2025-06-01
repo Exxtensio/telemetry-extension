@@ -1,0 +1,71 @@
+<?php
+
+namespace Exxtensio\TelemetryExtension;
+
+use Carbon\Carbon;
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Exception\RequestException;
+use Illuminate\Support\Facades\Log;
+use Monolog\Logger;
+use Monolog\LogRecord;
+use Monolog\Handler\AbstractProcessingHandler;
+
+class AppHandler extends AbstractProcessingHandler
+{
+    protected Client $client;
+
+    protected string $url;
+    protected string $service;
+
+    public function __construct($level = Logger::DEBUG, bool $bubble = true)
+    {
+        parent::__construct($level, $bubble);
+
+        $this->client = new Client;
+        $this->url = rtrim(config('logging.channels.loki.url'), '/');
+        $this->service = env('APP_SERVICE', 'default');
+    }
+
+    protected function write(LogRecord $record): void
+    {
+        try {
+            $timestamp = Carbon::now()->timestamp * 1000000000;
+
+            $logEntry = [
+                'streams' => [
+                    [
+                        'stream' => [
+                            'service' => $this->service,
+                            'level' => strtolower($record->level->getName()),
+                        ],
+                        'values' => [
+                            [(string) $timestamp, $record->message],
+                        ],
+                    ],
+                ],
+            ];
+
+            $this->client->post("$this->url/loki/api/v1/push", [
+                'json' => $logEntry,
+                'headers' => ['Content-Type' => 'application/json'],
+            ]);
+
+        } catch (RequestException $e) {
+            AppException::set();
+
+
+
+            Log::channel('slack')->error('Loki push failed', [
+                'type' => 'RequestException',
+                'message' => $e->getMessage(),
+                'content' => $e->getResponse()->getBody()->getContents()
+            ]);
+        } catch (GuzzleException $e) {
+            Log::channel('slack')->error('Loki push failed', [
+                'type' => 'GuzzleException',
+                'message' => $e->getMessage()
+            ]);
+        }
+    }
+}
