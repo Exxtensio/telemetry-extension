@@ -13,6 +13,7 @@ final class AppException
                 \Symfony\Component\HttpKernel\Exception\NotFoundHttpException::class => 'Route not found',
                 default => 'Unknown error'
             },
+            \Exxtensio\TelemetryExtension\AppHandler::class => 'Loki push failed',
             default => 'Unknown error'
         };
     }

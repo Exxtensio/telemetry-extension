@@ -6,7 +6,6 @@ use Carbon\Carbon;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\RequestException;
-use Illuminate\Support\Facades\Log;
 use Monolog\Logger;
 use Monolog\LogRecord;
 use Monolog\Handler\AbstractProcessingHandler;
@@ -52,20 +51,9 @@ class AppHandler extends AbstractProcessingHandler
             ]);
 
         } catch (RequestException $e) {
-            AppException::set();
-
-
-
-            Log::channel('slack')->error('Loki push failed', [
-                'type' => 'RequestException',
-                'message' => $e->getMessage(),
-                'content' => $e->getResponse()->getBody()->getContents()
-            ]);
+            AppException::set(self::class, RequestException::class, $e, 'slack');
         } catch (GuzzleException $e) {
-            Log::channel('slack')->error('Loki push failed', [
-                'type' => 'GuzzleException',
-                'message' => $e->getMessage()
-            ]);
+            AppException::set(self::class, GuzzleException::class, $e, 'slack');
         }
     }
 }
