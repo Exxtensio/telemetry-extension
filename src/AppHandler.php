@@ -31,6 +31,11 @@ class AppHandler extends AbstractProcessingHandler
         try {
             $timestamp = Carbon::now()->timestamp * 1000000000;
 
+            $logMessage = array_merge(
+                ['title' => $record->message],
+                $record->context
+            );
+
             $logEntry = [
                 'streams' => [
                     [
@@ -39,7 +44,7 @@ class AppHandler extends AbstractProcessingHandler
                             'level' => strtolower($record->level->getName()),
                         ],
                         'values' => [
-                            [(string) $timestamp, $record->message],
+                            [(string)$timestamp, json_encode($logMessage)],
                         ],
                     ],
                 ],
