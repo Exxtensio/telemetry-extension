@@ -75,6 +75,7 @@ class TelemetryService implements TelemetryInterface
         } catch (Throwable $e) {
             $span->recordException($e);
             $span->setStatus(Trace\StatusCode::STATUS_ERROR, $e->getMessage());
+            AppException::set(TelemetryService::class, Throwable::class, $e);
             if($msg) $msg->nack(true);
             throw $e;
         } finally {
