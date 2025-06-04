@@ -35,14 +35,16 @@ final class AppException
                 default => 'Unknown error'
             },
             \App\Services\ConsumeRabbitService::class => match ($action) {
-                'collect_timeout' => 'AMQP Collect connection timeout',
-                'collect_consuming_error' => 'AMQP Collect failed while consuming',
-                'collect_connection' => 'AMQP Collect connection failed',
-                'collect_error' => 'AMQP Collect failed',
-                'insert_timeout' => 'AMQP Insert connection timeout',
-                'insert_consuming_error' => 'AMQP Insert failed while consuming',
-                'insert_connection' => 'AMQP Insert connection failed',
-                'insert_error' => 'AMQP Insert failed',
+                'insert_consume_message_error' => 'AMQP Insert failed while processing message',
+                'insert_consume_nack_error' => 'AMQP Insert failed to nack message',
+                'insert_connection_dropped' => 'AMQP Insert connection or channel dropped unexpectedly',
+                'insert_wait_error' => 'AMQP Insert failed while waiting for message',
+                'insert_error' => 'AMQP Insert failed with unexpected error during main loop',
+                'collect_consume_message_error' => 'AMQP Collect failed while processing message',
+                'collect_consume_nack_error' => 'AMQP Collect failed to nack message',
+                'collect_connection_dropped' => 'AMQP Collect connection or channel dropped unexpectedly',
+                'collect_wait_error' => 'AMQP Collect failed while waiting for message',
+                'collect_error' => 'AMQP Collect failed with unexpected error during main loop',
                 default => 'Unknown error'
             },
             \Exxtensio\TelemetryExtension\TelemetryService::class => match ($action) {
