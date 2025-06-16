@@ -20,6 +20,7 @@ class AppHandler extends AbstractProcessingHandler
     public function __construct($level = Logger::DEBUG, bool $bubble = true)
     {
         parent::__construct($level, $bubble);
+
         $this->client = new Client;
         $this->url = rtrim(config('logging.channels.loki.url'), '/');
         $this->service = env('APP_SERVICE', 'default');
