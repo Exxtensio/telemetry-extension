@@ -26,6 +26,7 @@ final class AppException
                 'deleted' => 'User deleted failed',
                 'registered' => 'User registered failed',
                 'updated' => 'User updated failed',
+                'webhookUpdated' => 'User webhook updated failed',
                 'subscribed' => 'User subscribed failed',
                 default => 'Unknown error'
             },
