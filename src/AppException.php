@@ -54,6 +54,10 @@ final class AppException
                 'default' => 'Telemetry withSpan failed',
                 default => 'Unknown error'
             },
+            'exchangerate' => match ($action) {
+                'default' => 'Exchangerate failed',
+                default => 'Unknown error'
+            },
             'phone' => match ($action) {
                 'get_instance' => 'PhoneNumberUtil getInstance failed',
                 default => 'Unknown error'
