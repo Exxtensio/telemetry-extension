@@ -59,7 +59,7 @@ class TelemetryService implements TelemetryInterface
     {
         if (!$this->enabled) {
             try {
-                return $callback(SpanInterface::getInvalid());
+                return $callback(Trace\Span::getInvalid());
             } catch (Throwable $e) {
                 AppException::set('telemetry', 'default', $e->getMessage());
                 throw $e;
