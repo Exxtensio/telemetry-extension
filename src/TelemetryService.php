@@ -6,6 +6,7 @@ use OpenTelemetry\API\Trace;
 use OpenTelemetry\API\Trace\Propagation\TraceContextPropagator;
 use OpenTelemetry\Context\Context;
 use OpenTelemetry\Context\ScopeInterface;
+use OpenTelemetry\API\Trace\SpanInterface;
 use Throwable;
 
 class TelemetryService implements TelemetryInterface
@@ -58,7 +59,7 @@ class TelemetryService implements TelemetryInterface
     {
         if (!$this->enabled) {
             try {
-                return $callback(null);
+                return $callback(SpanInterface::getInvalid());
             } catch (Throwable $e) {
                 AppException::set('telemetry', 'default', $e->getMessage());
                 throw $e;
