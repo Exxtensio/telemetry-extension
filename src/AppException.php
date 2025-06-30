@@ -12,6 +12,7 @@ final class AppException
             'route' => match ($action) {
                 'not_found' => 'Route not found',
                 'api_not_found' => 'API Route not found',
+                'method_not_allowed' => 'Method not allowed',
                 default => 'Unknown error'
             },
             'cloudwatch' => match ($action) {
