@@ -61,7 +61,7 @@ final class AppException
         };
     }
 
-    static public function set($type, $action = 'default', $message = null, $channel = 'cloudwatch'): void
+    static public function set($type = 'default', $action = 'default', $message = null, $channel = 'cloudwatch'): void
     {
         $title = self::getType($type, $action);
 
