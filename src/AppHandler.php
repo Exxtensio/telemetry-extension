@@ -2,63 +2,46 @@
 
 namespace Exxtensio\TelemetryExtension;
 
-use Carbon\Carbon;
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\GuzzleException;
-use GuzzleHttp\Exception\RequestException;
-use Monolog\Logger;
-use Monolog\LogRecord;
+use Aws\CloudWatchLogs\CloudWatchLogsClient;
 use Monolog\Handler\AbstractProcessingHandler;
+use Monolog\LogRecord;
+use Monolog\Logger;
 
 class AppHandler extends AbstractProcessingHandler
 {
-    protected Client $client;
+    protected $client;
+    protected $groupName;
+    protected $streamName;
 
-    protected string $url;
-    protected string $service;
-
-    public function __construct($level = Logger::DEBUG, bool $bubble = true)
+    public function __construct(
+        CloudWatchLogsClient $client,
+        string $groupName,
+        string $streamName,
+        $level = Logger::DEBUG,
+        bool $bubble = true
+    )
     {
         parent::__construct($level, $bubble);
-
-        $this->client = new Client;
-        $this->url = rtrim(config('logging.channels.loki.url'), '/');
-        $this->service = env('APP_SERVICE', 'default');
+        $this->client = $client;
+        $this->groupName = $groupName;
+        $this->streamName = $streamName;
     }
 
     protected function write(LogRecord $record): void
     {
         try {
-            $timestamp = Carbon::now()->timestamp * 1000000000;
-
-            $logMessage = array_merge(
-                ['title' => $record->message],
-                $record->context
-            );
-
-            $logEntry = [
-                'streams' => [
+            $this->client->putLogEvents([
+                'logGroupName' => $this->groupName,
+                'logStreamName' => $this->streamName,
+                'logEvents' => [
                     [
-                        'stream' => [
-                            'service' => $this->service,
-                            'level' => strtolower($record->level->getName()),
-                        ],
-                        'values' => [
-                            [(string)$timestamp, json_encode($logMessage)],
-                        ],
+                        'message' => $record->formatted,
+                        'timestamp' => round(microtime(true) * 1000),
                     ],
                 ],
-            ];
-
-            $this->client->post("$this->url/loki/api/v1/push", [
-                'json' => $logEntry,
-                'headers' => ['Content-Type' => 'application/json'],
             ]);
-
-        } catch (RequestException $e) {
-            AppException::set(self::class, 'default', $e->getMessage(), 'slack');
-        } catch (GuzzleException $e) {
-            AppException::set(self::class, 'default', $e->getMessage(), 'slack');
+        } catch (\Exception $e) {
+            AppException::set('cloudwatch', 'default', $e->getMessage(), 'slack');
         }
     }
 }
