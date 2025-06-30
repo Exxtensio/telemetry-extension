@@ -32,24 +32,16 @@ final class AppException
                 'subscribed' => 'User subscribed failed',
                 default => 'Unknown error'
             },
-//            \App\Console\Commands\RabbitRunCommand::class => match ($action) {
-//                'collect_handle' => 'Collect command failed',
-//                'insert_handle' => 'Insert command failed',
-//                default => 'Unknown error'
-//            },
-//            \App\Services\ConsumeRabbitService::class => match ($action) {
-//                'insert_consume_message_error' => 'AMQP Insert failed while processing message',
-//                'insert_consume_nack_error' => 'AMQP Insert failed to nack message',
-//                'insert_connection_dropped' => 'AMQP Insert connection or channel dropped unexpectedly',
-//                'insert_wait_error' => 'AMQP Insert failed while waiting for message',
-//                'insert_error' => 'AMQP Insert failed with unexpected error during main loop',
-//                'collect_consume_message_error' => 'AMQP Collect failed while processing message',
-//                'collect_consume_nack_error' => 'AMQP Collect failed to nack message',
-//                'collect_connection_dropped' => 'AMQP Collect connection or channel dropped unexpectedly',
-//                'collect_wait_error' => 'AMQP Collect failed while waiting for message',
-//                'collect_error' => 'AMQP Collect failed with unexpected error during main loop',
-//                default => 'Unknown error'
-//            },
+            'queue-loop' => match ($action) {
+                'collect_handle' => 'Collect command failed',
+                'insert_handle' => 'Insert command failed',
+                default => 'Unknown error'
+            },
+            'sqs-service' => match ($action) {
+                'sqs_receive_error' => 'SQS failed while trying to receive a message',
+                'sqs_error' => 'SQS failed while processing message',
+                default => 'Unknown error'
+            },
             'telemetry' => match ($action) {
                 'default' => 'Telemetry withSpan failed',
                 default => 'Unknown error'
