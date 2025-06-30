@@ -24,14 +24,14 @@ final class AppException
                 'connection_timeout' => 'SQS connection timeout',
                 default => 'Unknown error'
             },
-//            \App\Services\UserService::class => match ($action) {
-//                'deleted' => 'User deleted failed',
-//                'registered' => 'User registered failed',
-//                'updated' => 'User updated failed',
-//                'webhookUpdated' => 'User webhook updated failed',
-//                'subscribed' => 'User subscribed failed',
-//                default => 'Unknown error'
-//            },
+            'user-service' => match ($action) {
+                'deleted' => 'User deleted failed',
+                'registered' => 'User registered failed',
+                'updated' => 'User updated failed',
+                'webhookUpdated' => 'User webhook updated failed',
+                'subscribed' => 'User subscribed failed',
+                default => 'Unknown error'
+            },
 //            \App\Console\Commands\RabbitRunCommand::class => match ($action) {
 //                'collect_handle' => 'Collect command failed',
 //                'insert_handle' => 'Insert command failed',
@@ -50,14 +50,14 @@ final class AppException
 //                'collect_error' => 'AMQP Collect failed with unexpected error during main loop',
 //                default => 'Unknown error'
 //            },
-//            \Exxtensio\TelemetryExtension\TelemetryService::class => match ($action) {
-//                'default' => 'Telemetry withSpan failed',
-//                default => 'Unknown error'
-//            },
-//            \App\Location\Phone::class => match ($action) {
-//                'get_instance' => 'PhoneNumberUtil getInstance failed',
-//                default => 'Unknown error'
-//            },
+            'telemetry' => match ($action) {
+                'default' => 'Telemetry withSpan failed',
+                default => 'Unknown error'
+            },
+            'phone' => match ($action) {
+                'get_instance' => 'PhoneNumberUtil getInstance failed',
+                default => 'Unknown error'
+            },
             default => 'Unknown error'
         };
     }

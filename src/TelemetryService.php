@@ -10,23 +10,22 @@ use Throwable;
 
 class TelemetryService implements TelemetryInterface
 {
+    protected bool $enabled = true;
     protected Trace\TracerProviderInterface $provider;
     protected ?Trace\SpanInterface $rootSpan = null;
     protected ?ScopeInterface $rootScope = null;
 
     public function __construct(Trace\TracerProviderInterface $provider) {
         $this->provider = $provider;
+        $this->enabled = filter_var(env('TELEMETRY_ENABLED', true), FILTER_VALIDATE_BOOLEAN);
     }
 
     public function startRoot(string $tracerName, string $name, array $attributes = []): void
     {
-        if($this->rootSpan) {
-            return;
-        }
+        if(!$this->enabled || $this->rootSpan) return;
 
         $tracer = $this->provider->getTracer($tracerName);
-        $this->rootSpan = $tracer->spanBuilder($name)
-            ->startSpan();
+        $this->rootSpan = $tracer->spanBuilder($name)->startSpan();
 
         foreach ($attributes as $key => $value) {
             $this->rootSpan->setAttribute($key, $value);
@@ -37,6 +36,8 @@ class TelemetryService implements TelemetryInterface
 
     public function endRoot(): void
     {
+        if (!$this->enabled) return;
+
         if($this->rootSpan) {
             $this->rootSpan->setStatus(Trace\StatusCode::STATUS_OK);
             $this->rootSpan->end();
@@ -75,7 +76,7 @@ class TelemetryService implements TelemetryInterface
         } catch (Throwable $e) {
             $span->recordException($e);
             $span->setStatus(Trace\StatusCode::STATUS_ERROR, $e->getMessage());
-            AppException::set(TelemetryService::class, 'default', $e->getMessage());
+            AppException::set('telemetry', 'default', $e->getMessage());
             if($msg) $msg->nack(true);
             throw $e;
         } finally {
