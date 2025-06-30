@@ -15,14 +15,15 @@ class TelemetryService implements TelemetryInterface
     protected ?Trace\SpanInterface $rootSpan = null;
     protected ?ScopeInterface $rootScope = null;
 
-    public function __construct(Trace\TracerProviderInterface $provider) {
+    public function __construct(Trace\TracerProviderInterface $provider)
+    {
         $this->provider = $provider;
         $this->enabled = filter_var(env('TELEMETRY_ENABLED', true), FILTER_VALIDATE_BOOLEAN);
     }
 
     public function startRoot(string $tracerName, string $name, array $attributes = []): void
     {
-        if(!$this->enabled || $this->rootSpan) return;
+        if (!$this->enabled || $this->rootSpan) return;
 
         $tracer = $this->provider->getTracer($tracerName);
         $this->rootSpan = $tracer->spanBuilder($name)->startSpan();
@@ -38,7 +39,7 @@ class TelemetryService implements TelemetryInterface
     {
         if (!$this->enabled) return;
 
-        if($this->rootSpan) {
+        if ($this->rootSpan) {
             $this->rootSpan->setStatus(Trace\StatusCode::STATUS_OK);
             $this->rootSpan->end();
             $this->rootSpan = null;
@@ -55,6 +56,18 @@ class TelemetryService implements TelemetryInterface
      */
     public function withSpan(string $tracerName, string $name, callable $callback, array $trace = [], array $attributes = [], $msg = false): mixed
     {
+        if (!$this->enabled) {
+            try {
+                $response = $callback(null);
+                if ($msg) $msg->ack();
+                return $response;
+            } catch (Throwable $e) {
+                if ($msg) $msg->nack(true);
+                AppException::set('telemetry', 'default', $e->getMessage());
+                throw $e;
+            }
+        }
+
         $tracer = $this->provider->getTracer($tracerName);
         $context = TraceContextPropagator::getInstance()->extract($trace, null, Context::getCurrent());
 
@@ -71,13 +84,13 @@ class TelemetryService implements TelemetryInterface
         try {
             $response = $callback($span);
             $span->setStatus(Trace\StatusCode::STATUS_OK);
-            if($msg) $msg->ack();
+            if ($msg) $msg->ack();
             return $response;
         } catch (Throwable $e) {
             $span->recordException($e);
             $span->setStatus(Trace\StatusCode::STATUS_ERROR, $e->getMessage());
             AppException::set('telemetry', 'default', $e->getMessage());
-            if($msg) $msg->nack(true);
+            if ($msg) $msg->nack(true);
             throw $e;
         } finally {
             $span->end();
@@ -87,6 +100,10 @@ class TelemetryService implements TelemetryInterface
 
     public function getContext($context): array
     {
+        if (!$this->enabled) {
+            return [];
+        }
+
         $carrier = [];
         TraceContextPropagator::getInstance()->inject($carrier, null, $context);
         return $carrier;
